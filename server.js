@@ -1,4 +1,3 @@
-// Import required modules
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -48,12 +47,39 @@ app.post('/api/orders', async (req, res) => {
         const { name, phone, lessons } = req.body;
 
         // Save the order to the database
-        await orderInfo.insertOne({ name, phone, lessons, date: new Date() });
+        await orderInfo.insertOne({ name, phone, lessons});
 
         res.status(201).json({ message: 'Order placed successfully' });
     } catch (err) {
         console.error('Error saving order:', err);
         res.status(500).json({ error: 'Failed to place order' });
+    }
+});
+
+// Endpoint to update lesson availability
+app.put('/api/update_lesson', async (req, res) => {
+    try {
+        if (!db) {
+            return res.status(500).json({ error: 'Database not connected' });
+        }
+
+        const { subject, avail } = req.body;
+        const lessons = db.collection('lessons_info');
+
+        // Update the lesson availability based on the subject
+        const result = await lessons.updateOne(
+            { subject: subject }, // Find the lesson by subject
+            { $set: { avail: avail } } // Set the new availability
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ error: 'Lesson not found or availability not updated' });
+        }
+
+        res.status(200).json({ message: 'Lesson availability updated' });
+    } catch (err) {
+        console.error('Error updating lesson availability:', err);
+        res.status(500).json({ error: 'Failed to update lesson availability' });
     }
 });
 
