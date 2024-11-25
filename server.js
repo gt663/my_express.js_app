@@ -2,18 +2,29 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bodyParser = require('body-parser'); // For parsing JSON request bodies
+const propertiesReader = require('properties-reader');
 
 // Initialize app
 const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // Enable parsing of JSON request bodies
 
+
 // Serve static files from the public/images directory
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
+// Load MongoDB connection info from config.properties file
+const properties = propertiesReader('config.properties');
+const mongodbUser = properties.get('MONGODB_USER');
+const mongodbPassword = properties.get('MONGODB_PASSWORD');
+const mongodbClusterUrl = properties.get('MONGODB_CLUSTER_URL');
+const mongodbDb = properties.get('MONGODB_DB');
+
+// MongoDB URI from properties file
+const uri = `mongodb+srv://${mongodbUser}:${mongodbPassword}@${mongodbClusterUrl}/${mongodbDb}?retryWrites=true&w=majority`;
+
 // MongoDB setup
 const { MongoClient } = require('mongodb');
-const uri = "mongodb+srv://hansnursin:XiRcV8DhqngTYod2@cluster0.zfpmj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"; // Replace with your connection string
 const client = new MongoClient(uri);
 
 let db;
