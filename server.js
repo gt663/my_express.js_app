@@ -3,15 +3,36 @@ const cors = require('cors');
 const path = require('path');
 const bodyParser = require('body-parser'); // For parsing JSON request bodies
 const propertiesReader = require('properties-reader');
+const fs = require('fs'); // For file existence check
 
 // Initialize app
 const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // Enable parsing of JSON request bodies
 
+// Logger middleware function
+const logger = (req, res, next) => {
+    const method = req.method;  // GET, POST, etc.
+    const url = req.originalUrl;  // The requested URL
+    const timestamp = new Date().toISOString();  // Current timestamp
+    console.log(`[${timestamp}] ${method} request to ${url}`);
+    next();  // Pass control to the next middleware or route handler
+};
 
-// Serve static files from the public/images directory
+// Apply the logger middleware globally
+app.use(logger);
+
+// Serve static files from the 'public/images' directory
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
+// Optional: Add custom error handling for missing image files
+app.use((req, res, next) => {
+    const imagePath = path.join(__dirname, 'public/images', req.url);
+    if (req.url.startsWith('/images') && !fs.existsSync(imagePath)) {
+        return res.status(404).json({ error: 'Image not found' });
+    }
+    next();
+});
 
 // Load MongoDB connection info from config.properties file
 const properties = propertiesReader('config.properties');
@@ -58,7 +79,7 @@ app.post('/api/orders', async (req, res) => {
         const { name, phone, lessons } = req.body;
 
         // Save the order to the database
-        await orderInfo.insertOne({ name, phone, lessons});
+        await orderInfo.insertOne({ name, phone, lessons });
 
         res.status(201).json({ message: 'Order placed successfully' });
     } catch (err) {
