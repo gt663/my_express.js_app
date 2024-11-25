@@ -1,31 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const bodyParser = require('body-parser'); // For parsing JSON request bodies
+const bodyParser = require('body-parser'); 
 const propertiesReader = require('properties-reader');
-const fs = require('fs'); // For file existence check
+const fs = require('fs'); 
 
 // Initialize app
 const app = express();
 app.use(cors());
-app.use(bodyParser.json()); // Enable parsing of JSON request bodies
+app.use(bodyParser.json()); 
 
 // Logger middleware function
 const logger = (req, res, next) => {
-    const method = req.method;  // GET, POST, etc.
-    const url = req.originalUrl;  // The requested URL
-    const timestamp = new Date().toISOString();  // Current timestamp
+    const method = req.method;  
+    const url = req.originalUrl; 
+    const timestamp = new Date().toISOString(); 
     console.log(`[${timestamp}] ${method} request to ${url}`);
-    next();  // Pass control to the next middleware or route handler
+    next();  
 };
 
-// Apply the logger middleware globally
+
 app.use(logger);
 
-// Serve static files from the 'public/images' directory
+
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
-// Optional: Add custom error handling for missing image files
+
 app.use((req, res, next) => {
     const imagePath = path.join(__dirname, 'public/images', req.url);
     if (req.url.startsWith('/images') && !fs.existsSync(imagePath)) {
@@ -34,14 +34,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// Load MongoDB connection info from config.properties file
+// Load connection info from config.properties 
 const properties = propertiesReader('config.properties');
 const mongodbUser = properties.get('MONGODB_USER');
 const mongodbPassword = properties.get('MONGODB_PASSWORD');
 const mongodbClusterUrl = properties.get('MONGODB_CLUSTER_URL');
 const mongodbDb = properties.get('MONGODB_DB');
 
-// MongoDB URI from properties file
+
 const uri = `mongodb+srv://${mongodbUser}:${mongodbPassword}@${mongodbClusterUrl}/${mongodbDb}?retryWrites=true&w=majority`;
 
 // MongoDB setup
@@ -78,7 +78,7 @@ app.post('/api/orders', async (req, res) => {
         const orderInfo = db.collection('order_info');
         const { name, phone, lessons } = req.body;
 
-        // Save the order to the database
+        
         await orderInfo.insertOne({ name, phone, lessons });
 
         res.status(201).json({ message: 'Order placed successfully' });
@@ -98,10 +98,10 @@ app.put('/api/update_lesson', async (req, res) => {
         const { subject, avail } = req.body;
         const lessons = db.collection('lessons_info');
 
-        // Update the lesson availability based on the subject
+        
         const result = await lessons.updateOne(
-            { subject: subject }, // Find the lesson by subject
-            { $set: { avail: avail } } // Set the new availability
+            { subject: subject }, 
+            { $set: { avail: avail } } 
         );
 
         if (result.modifiedCount === 0) {
@@ -115,7 +115,56 @@ app.put('/api/update_lesson', async (req, res) => {
     }
 });
 
-// Start the server
+
+app.get('/api/search', async (req, res) => {
+    const query = req.query.q;
+
+    
+    if (!query) {
+        return res.status(400).json({ error: 'Search query cannot be empty' });
+    }
+
+    try {
+        const lessonsCollection = db.collection('lessons_info');
+        
+        
+        const allLessons = await lessonsCollection.find({}).toArray();
+
+        
+        const filteredLessons = allLessons.filter(lesson => {
+            let isMatch = false;
+
+           
+            if (lesson.subject && lesson.subject.toLowerCase() === query.toLowerCase()) {
+                isMatch = true;
+            }
+            if (lesson.location && lesson.location.toLowerCase() === query.toLowerCase()) {
+                isMatch = true;
+            }
+            if (lesson.price && lesson.price.toString() === query) {
+                isMatch = true;
+            }
+            if (lesson.avail && lesson.avail.toString() === query) {
+                isMatch = true;
+            }
+
+           
+            return isMatch;
+        });
+
+        
+        res.json(filteredLessons);
+    } catch (error) {
+        console.error('Error during search:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+
+
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
