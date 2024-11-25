@@ -119,7 +119,6 @@ app.put('/api/update_lesson', async (req, res) => {
 app.get('/api/search', async (req, res) => {
     const query = req.query.q;
 
-    
     if (!query) {
         return res.status(400).json({ error: 'Search query cannot be empty' });
     }
@@ -127,30 +126,16 @@ app.get('/api/search', async (req, res) => {
     try {
         const lessonsCollection = db.collection('lessons_info');
         
-        
+    
         const allLessons = await lessonsCollection.find({}).toArray();
 
-        
-        const filteredLessons = allLessons.filter(lesson => {
-            let isMatch = false;
-
-           
-            if (lesson.subject && lesson.subject.toLowerCase() === query.toLowerCase()) {
-                isMatch = true;
-            }
-            if (lesson.location && lesson.location.toLowerCase() === query.toLowerCase()) {
-                isMatch = true;
-            }
-            if (lesson.price && lesson.price.toString() === query) {
-                isMatch = true;
-            }
-            if (lesson.avail && lesson.avail.toString() === query) {
-                isMatch = true;
-            }
-
-           
-            return isMatch;
-        });
+        // Filter lessons in JavaScript
+        const filteredLessons = allLessons.filter(lesson =>
+            (lesson.subject && lesson.subject.toLowerCase().includes(query.toLowerCase())) ||
+            (lesson.location && lesson.location.toLowerCase().includes(query.toLowerCase())) ||
+            (lesson.price && lesson.price.toString().includes(query)) ||
+            (lesson.avail && lesson.avail.toString().includes(query))
+        );
 
         
         res.json(filteredLessons);
@@ -159,10 +144,6 @@ app.get('/api/search', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
-
-
 
 
 const PORT = process.env.PORT || 3000;
