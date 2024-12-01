@@ -5,9 +5,17 @@ const bodyParser = require('body-parser');
 const propertiesReader = require('properties-reader');
 const fs = require('fs'); 
 
+
+// Allow requests from your GitHub Pages site
+const corsOptions = {
+    origin: 'https://gt663.github.io', // The domain you want to allow
+    methods: ['GET', 'POST','PUT'], // Allow these HTTP methods
+    credentials: true // If you need cookies or authorization headers
+  };
+
 // Initialize app
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json()); 
 
 // Logger middleware function
